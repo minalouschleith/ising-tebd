@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "ising-tebd"
+version = "0.1.0"
+description = "Solving the 2 dimensional classical Ising model using the time-evolving block decimation (TEBD) algorithm"
+authors = ["Mina-Lou Schleith <minalou.schleith@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = ">=3.11,<4.0" # used 3.11.4
+numpy = "^2.3.1"
+matplotlib = "^3.10.3"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
