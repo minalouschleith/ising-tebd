@@ -1,29 +1,21 @@
 ### performing the contraction of the tensor network
 import numpy as np
-from scipy.linalg import expm
-from .TensorNetwork import SVD
 
-#why need a list of unitaries if the Hamiltonian is the same on each pair of sites anyway? 
-def Unitary(self):
-    Hami_list = self.Hami_list
-    Uni_list = []
-    for H in Hami_list:
-        U = expm(-self.dt*H) # Unitary (imaginary) time evolution operator exp(-dt*H)
-        Uni_list.append(U)
-    return Uni_list
-
-def Theta(self,i,j): 
-    theta1 = np.tensordot(np.diag(self.Lambdas[i]), self.Bs[i], [1,0]) # contract leg 1 of Lambda(i) with leg 0 of B(i)
-    theta2 = np.tensordot(theta1, self.Bs[j], [1,0]) # contract leg 1 of theta1 with leg 0 of B(i+1)
+def Theta(psi,i,j): 
+    theta1 = np.tensordot(np.diag(psi.Lambdas[i]), psi.Bs[i], [1,0]) # contract leg 1 of Lambda(i) with leg 0 of B(i)
+    theta2 = np.tensordot(theta1, psi.Bs[j], [2,0]) # contract leg 1 of theta1 with leg 0 of B(i+1)
     return theta2 
 
-def update_bond(psi, i): 
+def update_bond(psi,model,i):
     d = psi.d # physical dymension = 2 
-    j = (i+1) % psi.Nx
-    theta = psi.Theta(i,j) # B(n)*B(n*1) -> vL i* j* vR
-    U = psi.Unitary[i] 
-    U = np.reshape(U,[d,d,d,d]) # U has 4 legs: i* j*, i j
-    theta = np.tensordot(U, theta, axes=([2,3], [1,2])) # U's axes [2,3] with theta's axes [1,2]
+    j = (i+1) % psi.Nx 
+    theta = Theta(psi,i,j) # B(n)*B(n*1) -> vL i* j* vR
+    model.Unitary() 
+    U = model.Uni_list  
+    print("theta =  ",theta, "thetashape = ", theta.shape)
+    Ui = np.reshape(U[i],[d,d,d,d]) # U has 4 legs: i* j*, i j
+    print("Unitary = ", Ui, "U shape = ", Ui.shape)
+    theta = np.tensordot(Ui, theta, axes=([2,3], [1,2])) # U's axes [2,3] with theta's axes [1,2]
 
     """
     contraction indices: ????????????
