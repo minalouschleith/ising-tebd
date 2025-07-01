@@ -54,9 +54,9 @@ class Ising_model:
 class MPS:
 
     #initializer 
-    def __init__(self, Bs, d, Lambdas, Nx, bc="finite"): 
+    def __init__(self, Bs, d, Lambdas, Nx, chi_m, bc="finite"): 
         assert bc in ["finite","infinite"]
-        self.Bs, self.d, self.Lambdas, self.Nx, self.bc = Bs, d, Lambdas, Nx, bc
+        self.Bs, self.d, self.Lambdas, self.Nx, self.chi_m, self.bc = Bs, d, Lambdas, Nx, chi_m, bc
         self.nbonds= Nx-1 if bc=="finite" else self.Nx
     
 
@@ -89,5 +89,5 @@ def Initial_state(Nx ,d=2 ,bc="finite"):
     Lambda = np.ones([1], dtype= float)
     Bs = [B.copy() for i in range(Nx)] 
     Lambdas = [Lambda.copy() for i in range(Nx)]
-    return MPS(Bs,d,Lambdas,Nx,bc) 
+    return MPS(Bs,d,Lambdas,Nx,1,bc) 
     
