@@ -37,7 +37,7 @@ def update_bond(psi,model,chi_m,eps,bond):
     assert np.all(np.isfinite(theta)), "theta contains inf or nan"
     theta = np.transpose(theta, [2,0,1,3]) # vL i j vR
     A,Lambda,B = SVD(theta, psi.chi_m, psi.eps) # U1 * S * U2 (U1, U2 = unitaries, S = diagonal, singular values)
-    inv_Lambda_i = np.diag(1.0 / (psi.Lambdas[i]+1e-12))
+    inv_Lambda_i = np.diag(1.0 / (psi.Lambdas[i]+1e-20))
     B_tilde1 = np.tensordot(inv_Lambda_i, A, axes=(1,0))
     psi.Bs[i] = np.tensordot(B_tilde1, np.diag(Lambda), axes=(2,0))  #B_tilde(i)
     psi.Lambdas[j] = Lambda
@@ -61,3 +61,17 @@ def run_TEBD(psi, model, N_steps, chi_m, eps):
             for bond in range(k, nbonds, 2): # range(start, stop, steps): even and then odd unitaries
                 print("step = ", step,"bond= ", bond)
                 update_bond(psi, model, chi_m, eps, bond)
+
+
+"""Final results"""
+
+def contract_partition_function(MPS_initial,MPS_final):
+    Nx = MPS_initial.Nx
+    d = MPS_initial.d
+    Z = np.array([[1.0]])
+
+    for s in range(Nx):
+        tmp = np.tensordot(Z, np.conj(MPS_final.Bs[s]), axes=([0],[0]))
+        C = np.tensordot(tmp, MPS_initial.Bs[s], axes=([0,1],[0,1]))
+
+    return C
