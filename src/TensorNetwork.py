@@ -2,6 +2,7 @@
 import numpy as np
 from scipy.linalg import svd 
 from scipy.linalg import expm
+from scipy.linalg import sqrtm 
 
 ####################################################################################
 
@@ -40,9 +41,12 @@ class Ising_model:
         beta = self.beta 
         J = self.J
         W = np.zeros((d,d))
-        for s1 in range(d):
-            for s2 in range(d):
-                W[s1,s2] = np.sqrt(np.exp(beta*J*spin_vals(s1)*spin_vals(s2)))
+        # for s1 in range(d):
+        #    for s2 in range(d):
+        #        W[s1,s2] = np.sqrt(np.exp(beta*J*spin_vals(s1)*spin_vals(s2)))
+        # sqrt_cosh = np.sqrt(np.cosh(beta*J))
+        # sqrt_sinh = np.sqrt(np.sinh(beta*J)) 
+        # W = np.array([ [ sqrt_cosh,  sqrt_sinh], [ sqrt_cosh, -sqrt_sinh]])
         
 
     def site_tensor(self):
@@ -52,7 +56,8 @@ class Ising_model:
         W = np.zeros((d,d))
         for i in range(d):
             for j in range(d):
-                W[i,j] = np.exp(-0.5*beta*J*spin_vals(i)*spin_vals(j))
+                W[i,j] = np.exp(beta*J*spin_vals(i)*spin_vals(j))
+        W_new = sqrtm(W)
 
 
         T=np.zeros((d,d,d,d))
@@ -61,8 +66,8 @@ class Ising_model:
                 for k in range(d):
                     for l in range(d):
                         for s in range(d):
-                            T[i,j,k,l] += W[i,s]*W[j,s]*W[k,s]*W[l,s]
-        self.tensor = T 
+                            T[i,j,k,l] += W_new[s,i]*W_new[s,j]*W_new[s,k]*W_new[s,l]
+        self.tensor = T #/ np.linalg.norm(T)
 
 
 ###################################################################################
@@ -87,12 +92,12 @@ def SVD(theta, chi_m, eps):
         theta = np.reshape(theta, [chi_vL*dL, dR*chi_vR]) #merge legs
         A,Lambda,B = svd(theta, full_matrices=False) #singular value decomposition 
         chiv_crit = min(chi_m, np.sum(Lambda>eps)) #critical bond dimension
-        print("chiv crit= ", chiv_crit)
+        #print("chiv crit= ", chiv_crit)
         assert chiv_crit>=1, "SVD truncation resulted in chiv_crit<1"
         ids = np.argsort(Lambda)[::-1][:chiv_crit] # indices of the highest chiv_crit singular values
         A,Lambda,B = A[:, ids],Lambda[ids],B[ids,:]
         Lambda = Lambda/np.linalg.norm(Lambda) #renormalize tensor
-        print("norm lambda", np.linalg.norm(Lambda)) 
+        #print("norm lambda", np.linalg.norm(Lambda)) 
         A = np.reshape(A, [chi_vL,dL,chiv_crit]) 
         B = np.reshape(B, [chiv_crit,dR,chi_vR])
         """

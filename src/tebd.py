@@ -18,6 +18,7 @@ def update_bond(psi,model,chi_m,eps,bond):
     T = model.tensor 
     theta = np.tensordot(T, theta, axes=([2,3], [1,2])) # U's axes [2,3] with theta's axes [1,2]
     theta = theta/np.linalg.norm(theta)
+    #print("norm theta", np.linalg.norm(theta))
     assert np.all(np.isfinite(theta)), "theta contains inf or nan"
     theta = np.transpose(theta, [2,0,1,3]) # vL i j vR
     A,Lambda,B = SVD(theta, psi.chi_m, psi.eps) # U1 * S * U2 (U1, U2 = unitaries, S = diagonal, singular values)
@@ -48,10 +49,11 @@ def run_TEBD(psi, model):
     for step in range(N_steps):
         for k in [0,1]: 
             for bond in range(k, nbonds, 2): # range(start, stop, steps): even and then odd unitaries
-                print("step = ", step,"bond= ", bond)
+                #print("step = ", step,"bond= ", bond)
                 update_bond(psi, model, chi_m, eps, bond)
-                print("norm squared= ", norm_squared(psi))
+                #print("norm squared= ", norm_squared(psi))
             mag_tmp = expectation_value(psi,model.sigz) 
+            #print("mag tmp =. ",mag_tmp, "beta=.  ", model.beta)
             mag_tmp_sum = np.sum(mag_tmp)
             Mag_tot += mag_tmp_sum
     Mag_tot = Mag_tot/N_steps/2
@@ -84,6 +86,7 @@ def expectation_value(psi,operator):
     return np.real_if_close(result) 
 
 def get_mag_curve(Nx,betas, J, N_steps, chi_m, eps,bc="finite"):
+
     mags = []
     for beta in betas: 
         initial_state = Initial_state(Nx,bc) 
@@ -97,3 +100,15 @@ def get_correlation_curve(Nx,betas, J, N_steps, chi_m, eps):
     corrs = []
     for beta in betas: 
         initial
+
+def critical_temp_analytic(J):
+    return 2*J/(np.log(1+np.sqrt(2)))
+
+def mag_analytic(beta,J): 
+    epsilon = 1e-10
+    beta_crit = 1/critical_temp_analytic(J)
+    if beta>(beta_crit+1e-10):
+        return (1-(np.sinh(2*beta))**(-4))**(1/8)
+    else:
+        return 0
+    
