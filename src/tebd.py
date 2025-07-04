@@ -132,4 +132,4 @@ def Onsager_analytical_correlation_curve(beta,J):
     if beta>(beta_crit+1e-10):
         return 1/(1/beta_crit - 1/beta)     # T< Tcrit, xi ~ 1/(Tc-T)
     else: 
-        return -1/np.log(np.tanh(beta*J)) #Onsager's result
+        return -1/np.log(np.tanh(beta*J)) #Onsager's result 
