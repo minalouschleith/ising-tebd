@@ -6,7 +6,6 @@ from scipy.sparse.linalg import eigs
 def Theta(psi,i,j): 
     theta1 = np.tensordot(np.diag(psi.Lambdas[i]), psi.Bs[i], axes=([1],[0])) 
     theta2 = np.tensordot(theta1, psi.Bs[j], axes=([2],[0])) 
-    #print("function Theta, Lambda[i]=", psi.Lambdas[i], "B[i]= ", psi.Bs[i], "B[i+1]= ", psi.Bs[j])
     return theta2 
 
 def update_bond(psi,model,chi_m,eps,bond):
@@ -28,10 +27,8 @@ def update_bond(psi,model,chi_m,eps,bond):
     psi.Lambdas[j] = Lambda
     psi.Bs[j] = B
 
-"""Time evolution"""
 
 def sites_for_bond(psi, bond):
-    """return site indices for bond index"""
     i = bond
     j = (i + 1) if psi.bc == "finite" else (i + 1) % psi.Nx
     return i, j
@@ -45,29 +42,13 @@ def run_TEBD(psi, model):
     chi_m= model.chi_m
     eps = model.eps
     nbonds = psi.nbonds 
-    Mag_tot=0
    
     for step in range(N_steps):
         for k in [0,1]: 
             for bond in range(k, nbonds, 2): 
                 update_bond(psi, model, chi_m, eps, bond)
 
-
-"""Final results"""
-
-def contract_partition_function(MPS_initial,MPS_final):
-    """not working yet"""
-    Nx = MPS_initial.Nx
-    d = 2
-    Z = np.array([[1.0]])
-
-    for s in range(Nx):
-        tmp = np.tensordot(Z, np.conj(MPS_final.Bs[s]), axes=([0],[0]))
-        C = np.tensordot(tmp, MPS_initial.Bs[s], axes=([0,1],[0,1]))
-
-    return C
-
-"""Calculating observables like magnetisation and correlation length"""
+"""Calculating observables like magnetisation, correlation length and entanglement entropy"""
 
 def expectation_value(psi,operator):
     res = []
@@ -127,9 +108,3 @@ def get_correlation_curve(Nx,betas,J, N_steps, chi_m, eps):
         corrs.append(correlation_length(psi)) #correlation in the final state
     return corrs 
 
-def Onsager_analytical_correlation_curve(beta,J):
-    beta_crit = 1/critical_temp_analytic(J)
-    if beta>(beta_crit+1e-10):
-        return 1/(1/beta_crit - 1/beta)     # T< Tcrit, xi ~ 1/(Tc-T)
-    else: 
-        return -1/np.log(np.tanh(beta*J)) #Onsager's result 
