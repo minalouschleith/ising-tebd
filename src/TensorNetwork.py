@@ -12,7 +12,7 @@ def spin_vals(i):
     else:
         return 1
     
-"""Hamiltonian and unitary evolution of the 1D Ising chain"""
+"""Hamiltonian and unitary evolution"""
 
 class Ising_model:
 
@@ -33,21 +33,7 @@ class Ising_model:
         self.sigx = np.array([[0.0,1.0],[1.0,0.0]])
         self.sigy = np.array([[0.0,-1.0j],[1.0j,0.0]])
         self.sigz = np.array([[1.0,0.0],[0.0,-1.0]])
-        self.id = np.array([[1.0,0.0],[0.0,1.0]])
-        
-
-    def Boltzman_weight(self):
-        d=2
-        beta = self.beta 
-        J = self.J
-        W = np.zeros((d,d))
-        # for s1 in range(d):
-        #    for s2 in range(d):
-        #        W[s1,s2] = np.sqrt(np.exp(beta*J*spin_vals(s1)*spin_vals(s2)))
-        # sqrt_cosh = np.sqrt(np.cosh(beta*J))
-        # sqrt_sinh = np.sqrt(np.sinh(beta*J)) 
-        # W = np.array([ [ sqrt_cosh,  sqrt_sinh], [ sqrt_cosh, -sqrt_sinh]])
-        
+        self.id = np.array([[1.0,0.0],[0.0,1.0]])        
 
     def site_tensor(self):
         d=2
@@ -92,7 +78,6 @@ def SVD(theta, chi_m, eps):
         theta = np.reshape(theta, [chi_vL*dL, dR*chi_vR]) #merge legs
         A,Lambda,B = svd(theta, full_matrices=False) #singular value decomposition 
         chiv_crit = min(chi_m, np.sum(Lambda>eps)) #critical bond dimension
-        #print("chiv crit= ", chiv_crit)
         assert chiv_crit>=1, "SVD truncation resulted in chiv_crit<1"
         ids = np.argsort(Lambda)[::-1][:chiv_crit] # indices of the highest chiv_crit singular values
         A,Lambda,B = A[:, ids],Lambda[ids],B[ids,:]
