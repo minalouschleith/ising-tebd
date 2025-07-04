@@ -1,6 +1,7 @@
 ### performing the contraction of the tensor network
 import numpy as np
 from .TensorNetwork import * 
+from scipy.sparse.linalg import eigs 
 
 def Theta(psi,i,j): 
     theta1 = np.tensordot(np.diag(psi.Lambdas[i]), psi.Bs[i], axes=([1],[0])) 
@@ -18,7 +19,6 @@ def update_bond(psi,model,chi_m,eps,bond):
     T = model.tensor 
     theta = np.tensordot(T, theta, axes=([2,3], [1,2])) # U's axes [2,3] with theta's axes [1,2]
     theta = theta/np.linalg.norm(theta)
-    #print("norm theta", np.linalg.norm(theta))
     assert np.all(np.isfinite(theta)), "theta contains inf or nan"
     theta = np.transpose(theta, [2,0,1,3]) # vL i j vR
     A,Lambda,B = SVD(theta, psi.chi_m, psi.eps) # U1 * S * U2 (U1, U2 = unitaries, S = diagonal, singular values)
@@ -39,6 +39,7 @@ def sites_for_bond(psi, bond):
 def norm_squared(psi):
     return np.sum([np.linalg.norm(B)**2 for B in psi.Bs])
 
+
 def run_TEBD(psi, model):
     N_steps = model.N_steps
     chi_m= model.chi_m
@@ -48,16 +49,8 @@ def run_TEBD(psi, model):
    
     for step in range(N_steps):
         for k in [0,1]: 
-            for bond in range(k, nbonds, 2): # range(start, stop, steps): even and then odd unitaries
-                #print("step = ", step,"bond= ", bond)
+            for bond in range(k, nbonds, 2): 
                 update_bond(psi, model, chi_m, eps, bond)
-                #print("norm squared= ", norm_squared(psi))
-            mag_tmp = expectation_value(psi,model.sigz) 
-            #print("mag tmp =. ",mag_tmp, "beta=.  ", model.beta)
-            mag_tmp_sum = np.sum(mag_tmp)
-            Mag_tot += mag_tmp_sum
-    Mag_tot = Mag_tot/N_steps/2
-    return Mag_tot # return magnetization 
 
 
 """Final results"""
@@ -85,30 +78,58 @@ def expectation_value(psi,operator):
     result = np.sum(res)/psi.Nx
     return np.real_if_close(result) 
 
+def magnetization_Z(psi):
+    sigz = np.array([[1.0,0.0],[0.0,-1.0]])
+    return expectation_value(psi,sigz)
+
 def get_mag_curve(Nx,betas, J, N_steps, chi_m, eps,bc="finite"):
 
     mags = []
     for beta in betas: 
-        initial_state = Initial_state(Nx,bc) 
+        psi = Initial_state(Nx,bc) 
         model_test = Ising_model(Nx, J, N_steps, beta, chi_m, eps, bc)  #self, Nx, J, N_steps, beta, chi_m, eps, bc= "finite"
-        mag = run_TEBD(initial_state, model_test)
-        mags.append(mag)
+        run_TEBD(psi, model_test)
+        mags.append(magnetization_Z(psi)) #magnetization in the final state
     return mags 
-
-def get_correlation_curve(Nx,betas, J, N_steps, chi_m, eps):
-    bc = "infinite"
-    corrs = []
-    for beta in betas: 
-        initial
 
 def critical_temp_analytic(J):
     return 2*J/(np.log(1+np.sqrt(2)))
 
 def mag_analytic(beta,J): 
-    epsilon = 1e-10
     beta_crit = 1/critical_temp_analytic(J)
     if beta>(beta_crit+1e-10):
         return (1-(np.sinh(2*beta))**(-4))**(1/8)
     else:
         return 0
     
+def correlation_length(psi):
+    assert psi.bc == "infinite"
+    B = psi.Bs[0] #first state
+    chi = B.shape[0] #virtual bond dimension
+    T = np.tensordot(B, np.conj(B), axes = ([1],[1]))
+    T = np.transpose(T, [0,2,1,3])
+    for s in range(1, psi.Nx): 
+        B = psi.Bs[s]
+        T = np.tensordot(T,B, axes = ([2], [0]))
+        T = np.tensordot(T, np.conj(B), axes = ([2,3], [0,1]))
+    T = np.reshape(T, (chi**2, chi**2))
+    epsilon = eigs(T, k=2, which= 'LM', return_eigenvectors=False, ncv=20) #two largest eigenvalues
+    corr = -psi.Nx / np.log(np.min(np.abs(epsilon))) #second largest eigenvalue 
+    return corr 
+
+def get_correlation_curve(Nx,betas,J, N_steps, chi_m, eps):
+    bc = "infinite"
+    corrs = []
+    for beta in betas:
+        psi = Initial_state(Nx,bc)
+        model = Ising_model(Nx, J, N_steps, beta, chi_m, eps, bc)
+        run_TEBD(psi,model)
+        corrs.append(correlation_length(psi)) #correlation in the final state
+    return corrs 
+
+def Onsager_analytical_correlation_curve(beta,J):
+    beta_crit = 1/critical_temp_analytic(J)
+    if beta>(beta_crit+1e-10):
+        return 1/(1/beta_crit - 1/beta)     # T< Tcrit, xi ~ 1/(Tc-T)
+    else: 
+        return -1/np.log(np.tanh(beta*J)) #Onsager's result
